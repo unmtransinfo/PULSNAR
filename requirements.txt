@@ -1,0 +1,10 @@
+numpy
+scipy
+pandas
+pickle
+yaml
+scikit-learn
+rpy2
+xgboost
+catboost
+threadpoolctl
