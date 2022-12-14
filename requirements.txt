@@ -1,7 +1,6 @@
 numpy
 scipy
 pandas
-pickle
 PyYAML
 scikit-learn
 rpy2
