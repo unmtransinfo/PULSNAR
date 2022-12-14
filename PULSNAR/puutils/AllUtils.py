@@ -121,7 +121,7 @@ class ClassificationFileUtils:
                 self.fobj.write(line)
             self.fobj.flush()
 
-    def write_alpha_estimates(self, true_alpha, est_alpha, rep, cluster=0):
+    def write_alpha_estimates(self, true_alpha, est_alpha, rep, cluster=''):
         """
         This function writes alpha estimates to a file
         """
@@ -185,7 +185,7 @@ class CalibrationUtils:
         for itr in iterations:
             dat = rdata[rdata['iteration'] == itr]
             # generate calibration curve
-            dat['true_label'][dat['true_label'] >= 1] = 1   # set labels of all positives to 1
+            dat['true_label'][dat['true_label'] >= 1] = 1  # set labels of all positives to 1
             prob_true, prob_pred = calibration_curve(dat['true_label'].to_numpy(), dat['calibrated_prob'].to_numpy(),
                                                      n_bins=self.n_bins)
             plt.plot(prob_pred, prob_true, marker='o')

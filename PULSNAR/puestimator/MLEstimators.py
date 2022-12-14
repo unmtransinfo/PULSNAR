@@ -12,6 +12,7 @@ from sklearn.mixture import GaussianMixture
 from scipy.signal import argrelmin
 from collections import Counter
 from scipy import sparse
+import traceback
 
 
 # *** Methods for Classification ****
@@ -31,11 +32,13 @@ class ClassificationEstimator(BaseEstimator):
         self.model = self.select_the_model()
         # check if the classifier supports fit and predict_proba
         if not hasattr(self.model, "fit"):
+            traceback.print_stack()
             logging.error("The selected classifier does not have fit() function")
-            exit(0)
+            exit(-1)
         if not hasattr(self.model, "predict_proba"):
+            traceback.print_stack()
             logging.error("The selected classifier does not have predict_proba() function")
-            exit(0)
+            exit(-1)
 
     def select_the_model(self):
         """
@@ -60,6 +63,7 @@ class ClassificationEstimator(BaseEstimator):
             self.clf_params['verbose'] = False
             model = cb.CatBoostClassifier(**self.clf_params)
         else:
+            traceback.print_stack()
             logging.error("MLEstimators.py needs to be modified to support {0}".format(self.clf))
             exit(-1)
         return model
@@ -310,19 +314,23 @@ class ClusteringEstimator(BaseEstimator):
             # Use GMM if no clf is provided
             model = GaussianMixture(**clf_params)
         else:
+            traceback.print_stack()
             logging.error("MLEstimators.py needs to be modified to support {0}".format(clf))
-            exit(0)
+            exit(-1)
 
         # check if the classifier supports fit and predict_proba
         if not hasattr(model, "fit"):
+            traceback.print_stack()
             logging.error("The selected algorithm {0} does not have fit() function".format(clf))
-            exit(0)
+            exit(-1)
         if not hasattr(model, "bic"):
+            traceback.print_stack()
             logging.error("The selected algorithm {0} does not have bic() function".format(clf))
-            exit(0)
+            exit(-1)
         if not hasattr(model, "aic"):
+            traceback.print_stack()
             logging.error("The selected algorithm {0} does not have aic() function".format(clf))
-            exit(0)
+            exit(-1)
 
         self.clf = clf
         self.clf_params = clf_params

@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import random
+import traceback
 from sklearn.datasets import make_classification
 from sklearn.utils import shuffle
 from sklearn.preprocessing import KBinsDiscretizer
@@ -44,26 +45,33 @@ class SklearnSimulatedData:
         y_ml: ML labels of the data
         y_true: true labels of the data
         """
-
         self.params['n_samples'] = max(n_pos, n_unlab) * n_classes * 2
         self.params['n_features'] = n_features
         self.params['n_classes'] = n_classes
-        self.params['n_informative'] = n_classes
         self.params['class_sep'] = class_sep
         self.params['random_state'] = rseed
-        self.params['n_clusters_per_class'] = 1
+        self.params['n_informative'] = n_features - self.params['n_redundant'] - self.params['n_repeated']
         self.rseed = rseed
+
+        # self.params['n_informative'] = n_classes
+        #if scar:
+        #    self.params['n_clusters_per_class'] = 2  # use default value for the SCAR data
+        #else:
+        #    self.params['n_clusters_per_class'] = 1  # set it to 1
 
         # basic checks before processing
         if scar and n_classes != 2:
+            traceback.print_stack()
             logging.error("number of classes should be 2 for SCAR data")
             exit(-1)
         if n_pos == 0 or n_unlab == 0 or n_features == 0 or n_classes < 2:
+            traceback.print_stack()
             logging.error("wrong value passed for n_pos/n_unlab/n_features/n_classes. n_pos/n_unlab/n_features > 0 "
                           "and n_classes >1")
             exit(-1)
         if not scar and n_classes <= 2:
-            logging.error("number of classes should be >2 for non-SCAR data")
+            traceback.print_stack()
+            logging.error("number of classes should be >2 for SNAR data")
             exit(-1)
 
         # generate simulated data
@@ -72,7 +80,7 @@ class SklearnSimulatedData:
         for c in np.unique(self.labels):
             logging.info("class {0} records: {1}".format(c, np.sum(self.labels == c)))
 
-        # call sub-routines for SCAR and non-SCAR data
+        # call sub-routines for SCAR and SNAR data
         if scar:
             logging.info("generate SCAR data with {0} positives and {1} unlabeled".format(n_pos, n_unlab))
             X, y_ml, y_true = self.generate_scar_pu_data(n_pos, n_unlab, pf_in_unlab, binarize=discrete_features)
@@ -119,6 +127,7 @@ class SklearnSimulatedData:
         idx1 = pos_1[counts[1][0]:(counts[1][0] + counts[0])]  # positive
         # check if above logic worked fine
         if len(set(idx0).intersection(idx1)) > 0:
+            traceback.print_stack()
             logging.error("Error in the data selection!!! PROGRAM WILL HALT")
             exit(-1)
         else:
@@ -200,6 +209,7 @@ class SklearnSimulatedData:
 
         # check if above logic worked fine
         if len(set(idx0).intersection(idx1)) > 0:
+            traceback.print_stack()
             logging.error("Error in the data selection!!! PROGRAM WILL HALT")
             exit(-1)
         else:
@@ -311,6 +321,7 @@ class SklearnSimulatedData:
         idx1 = pos_0[counts[1][1]:(counts[1][1] + counts[0])]  # positive
         # check if above logic worked fine
         if len(set(idx0).intersection(idx1)) > 0:
+            traceback.print_stack()
             logging.error("Error in the data selection!!! PROGRAM WILL HALT")
             exit(-1)
         else:
@@ -381,6 +392,7 @@ class SklearnSimulatedData:
         logging.info("idx0 and idx1 length: {0}, {1}".format(len(idx0), len(idx1)))
         # check if above logic worked fine
         if len(set(idx0).intersection(idx1)) > 0:
+            traceback.print_stack()
             logging.error("Error in the data selection!!! PROGRAM WILL HALT")
             exit(-1)
         else:

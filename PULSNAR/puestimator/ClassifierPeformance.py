@@ -39,7 +39,7 @@ def pulsnar_performance_metrics(preds, y_orig, scar=True):
 # *** Methods to return calibrated probabilities ****
 class MLPerformanceEvaluation:
     def __init__(self, data=None, label=None, tru_label=None, all_rec_ids=None, calibration_method='isotonic',
-                 csrdata=False, k_flips=20, n_bins=100, alpha=None, classifier='xgboost', clf_params_file=None):
+                 csrdata=False, k_flips=1, n_bins=100, alpha=None, classifier='xgboost', clf_params_file=None):
 
         # set variables
         if data is None:
@@ -114,7 +114,8 @@ class MLPerformanceEvaluation:
         """
         # split data into positive and unlabeled sets
         ml_data = MLDataPreprocessing(rseed=123)
-        X_pos, _, y_true_pos, rec_pos, X_unlab, _, y_true_unlab, rec_unlab = \
+
+        X_pos, y_ml_pos, y_true_pos, rec_pos, X_unlab, y_ml_unlab, y_true_unlab, rec_unlab = \
             ml_data.generate_pu_dataset(self.data, self.label, self.tru_label, self.all_rec_ids)
 
         # flip labels of top alpha*U elements from 0 to 1

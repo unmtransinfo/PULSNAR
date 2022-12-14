@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+import traceback
 import scipy.stats as stats
 from scipy.optimize import minimize_scalar, dual_annealing, differential_evolution
 from sklearn.neighbors import KernelDensity
@@ -84,6 +85,7 @@ def compute_bin_count(prbs, bin_method="scott"):
         h = 2 * IQR_val(prbs) / lp ** (1 / 3)
         nbins = nearest_power_two((max(prbs) - min(prbs)) / h)
     else:
+        traceback.print_stack()
         logging.error("Invalid bin computation method provided")
         exit(-1)
     return nbins
@@ -145,6 +147,7 @@ def beta_kernel(v_bins, data=None, lmbda=None):
     """
 
     if data is None or lmbda is None:
+        traceback.print_stack()
         logging.error("Data/BW are missing")
         exit(-1)
     else:
@@ -210,6 +213,7 @@ def err_function(estrange, unlab_kde=None, case_kde=None):
     """
 
     if unlab_kde is None or case_kde is None:
+        traceback.print_stack()
         logging.error("unlabeled/case density is not provided")
         exit(-1)
     else:
@@ -254,6 +258,7 @@ class PositiveFractionEstimation:
         elif self.bw_method == "hist":
             bw = self.calculate_bandwidth_hist(probs, n_bins)
         else:
+            traceback.print_stack()
             logging.error("wrong bandwidth method")
             exit(-1)
 
@@ -295,6 +300,7 @@ class PositiveFractionEstimation:
         elif self.bw_method == "nrd0":
             bw = utils.bw_nrd0(data)[0]
         else:
+            traceback.print_stack()
             logging.error("wrong R method to calculate bandwidth")
             exit(-1)
         # numpy2ri.deactivate()
@@ -330,6 +336,8 @@ class PositiveFractionEstimation:
             ret = differential_evolution(minimize_mse, bounds=list(zip(lw, up)), args=(data, bin_count, hist_dens))
             bw = ret.x[0]
         else:
+            traceback.print_stack()
             logging.error("wrong optimization method. it should be global or local")
+            exit(-1)
         # print("bw_hist: ", bw)
         return bw

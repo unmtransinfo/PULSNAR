@@ -3,8 +3,8 @@
 # Parameters for XGBoost. If you want to add more parameters of XGBoost,
 # check the list here: https://xgboost.readthedocs.io/en/stable/parameter.html
 XGB_params = {
-    'n_jobs': 16,
-    'max_depth': 3,
+    'n_jobs': 4,
+    'max_depth': 6,
     'scale_pos_weight': 1.0,
     'random_state': 101
 }
@@ -14,15 +14,15 @@ XGB_params = {
 LR_params = {'penalty': 'l2',
              'max_iter': 5000,
              'verbose': 0,
-             'n_jobs': 16,
+             'n_jobs': 4,
              'class_weight': None,
              'random_state': 101}
 
 # Parameters for catboost. If you want to add more parameters of catboost,
 # check the list here: https://catboost.ai/en/docs/references/training-parameters/
 CB_params = {
-    'thread_count': 16,
-    'depth': 3,
+    'thread_count': 4,
+    'depth': 6,
     'random_seed': 1007
 }
 
@@ -39,7 +39,7 @@ IO_params = {
     'result_file': 'results/predictions.tsv',
     'alpha_file': 'results/alpha_estimates.tsv',
     'imp_feature_file': 'results/model_imp_features.pkl',
-    'bic_plot_file': 'plots/bic_vs_cluster_count.png'
+    'bic_plot_file': 'results/bic_vs_cluster_count.png'
 }
 
 # parameters for XGBoost GridSearch

@@ -1,7 +1,7 @@
 # parameters for XGBoost
 XGB_params:
   n_jobs: 16
-  max_depth: 2
+  max_depth: 6
   random_state: 101
 
 # parameters for Logistic Regression
@@ -15,7 +15,7 @@ LR_params:
 # parameters for CatBoost
 CB_params:
   thread_count: 16
-  depth: 3
+  depth: 5
   random_seed: 101
 
 # parameters for GMM
@@ -28,4 +28,4 @@ IO_params:
   result_file: 'results/predictions.tsv'
   alpha_file: 'results/alpha_estimates.tsv'
   imp_feature_file: 'results/model_imp_features.pkl'
-  bic_plot_file: 'plots/bic_vs_cluster_count.png'
+  bic_plot_file: 'results/bic_vs_cluster_count.png'

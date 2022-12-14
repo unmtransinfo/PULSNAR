@@ -20,42 +20,49 @@ from PULSNAR.puestimator import PulsnarParams as pp
 
 
 class PULSNARClassifier:
-    def __init__(self, scar=True, csrdata=True, classifier='xgboost', n_clusters=0, covar_type='full',
-                 top50p_covars=False, bin_method='scott', bw_method='hist', optim='global', calibration=False,
-                 calibration_data='PU', calibration_method='isotonic', smooth_isotonic=False,
-                 classification_metrics=False, iterations=1, kfold=5, kflips=20, pulsnar_params_file=None):
+    def __init__(self, scar=True, csrdata=False, classifier='xgboost', n_clusters=0, max_clusters=25, covar_type='full',
+                 top50p_covars=False, bin_method='scott', bw_method='hist', lowerbw=0.01, upperbw=0.5, optim='global',
+                 calibration=False, calibration_data='PU', calibration_method='isotonic', calibration_n_bins=100,
+                 smooth_isotonic=False, classification_metrics=False, n_iterations=1, kfold=5, kflips=1,
+                 pulsnar_params_file=None):
 
         # set class variables
         self.scar = scar
         self.csrdata = csrdata
         self.classifier = classifier
         self.n_clusters = n_clusters
+        self.max_clusters = max_clusters
         self.covar_type = covar_type
         self.top50p_covars = top50p_covars
         self.bin_method = bin_method
         self.bw_method = bw_method
+        self.lowerbw = lowerbw
+        self.upperbw = upperbw
         self.optim = optim
         self.calibration = calibration
         self.calibration_data = calibration_data
         self.calibration_method = calibration_method
+        self.calibration_n_bins = calibration_n_bins
         self.smooth_isotonic = smooth_isotonic
         self.classification_metrics = classification_metrics
-        self.iterations = iterations
+        self.n_iterations = n_iterations
         self.kfold = kfold
         self.kflips = kflips
         self.pulsnar_params_file = pulsnar_params_file
 
-    def run_pulsnar(self, data, label, tru_label=None):
+    def pulsnar(self, data, label, tru_label=None, rec_list=None):
         """
         This is the main driver function. It uses the arguments passed to determine the sub-routines to invoke
         and returns results: estimated alpha, file containing predicted probabilities, file containing alpha values,
-        file containing BIC vs cluster count plot, file containing ML model's important features.
+        file containing BIC vs cluster count plot, file containing ML model's important features, and classification
+        performance metrics.
 
         parameters
         ----------
         data:  feature matrix (X values)
         label: class labels of the data
         tru_label: true class labels of the data (only applicable for the known datasets)
+        rec_list: list of record ids
         """
         # check if user provided true labels or not
         if tru_label is None:
@@ -69,11 +76,11 @@ class PULSNARClassifier:
         logging.info("PULSNAR will return estimated alpha, output files, and classification performance metrics "
                      "if true labels are provided")
         if self.scar:
-            return self.scar_data_processing(data, label, tru_label)
+            return self.scar_data_processing(data, label, tru_label, rec_list)
         else:
-            return self.snar_data_processing(data, label, tru_label)
+            return self.snar_data_processing(data, label, tru_label, rec_list)
 
-    def scar_data_processing(self, X, Y, Y_true):
+    def scar_data_processing(self, X, Y, Y_true, mv_list):
         """
         Process scar data and return results
         """
@@ -91,11 +98,9 @@ class PULSNARClassifier:
         io_files = self.get_params(option='IO')
         r_fileop = ClassificationFileUtils(ofile=io_files['result_file'], scar=True, keepalpha=True,
                                            alphafile=io_files['alpha_file'])
-
-        # generate record ids for ML processing
-        mv_list = np.array([i for i in range(len(Y_true))])
-
-        for itr in range(self.iterations):
+        # run PULSCAR and get results
+        for itr in range(self.n_iterations):
+            logging.info("Estimating alpha for iteration {0}".format(itr+1))
             X, Y, Y_true, mv_list = shuffle(X, Y, Y_true, mv_list, random_state=itr)
             preds, y_ml, y_orig, rec_ids, est_alpha = self.run_ml_and_estimate_alpha(X, Y, Y_true, mv_list, itr)
             # store the estimated alpha
@@ -103,8 +108,9 @@ class PULSNARClassifier:
 
             # probability calibration if needed
             if self.calibration:
+                logging.info("Calibrating predicted probabilities for iteration {0}".format(itr + 1))
                 preds, y_ml, y_orig, rec_ids, calibrated_preds = self.apply_calibration(preds, y_ml, y_orig, rec_ids,
-                                                                                        est_alpha, k_flips=self.kflips)
+                                                                                        est_alpha)
             else:
                 calibrated_preds = preds
 
@@ -114,13 +120,14 @@ class PULSNARClassifier:
                                                  calibrated_preds, cluster='', p_frac='')
 
             # write alpha estimates to an output file
-            r_fileop.write_alpha_estimates('', est_alpha, itr)
+            r_fileop.write_alpha_estimates('', est_alpha, itr, cluster='')
 
             # calculate classification performance metrics
             if self.classification_metrics:
+                logging.info("Estimating classification performance metrics for iteration {0}".format(itr + 1))
                 mlpe = MLPerformanceEvaluation(data=X, label=Y, tru_label=Y_true, all_rec_ids=mv_list,
                                                calibration_method=self.calibration_method, csrdata=self.csrdata,
-                                               k_flips=self.kflips, n_bins=100, alpha=est_alpha,
+                                               k_flips=self.kflips, n_bins=self.calibration_n_bins, alpha=est_alpha,
                                                classifier=self.classifier, clf_params_file=self.pulsnar_params_file)
 
                 cls_metrics_preds, cls_metrics_y_true, _ = mlpe.prediction_using_probable_positives(preds, y_ml, y_orig,
@@ -150,7 +157,7 @@ class PULSNARClassifier:
 
         return res
 
-    def snar_data_processing(self, X, Y, Y_true):
+    def snar_data_processing(self, X, Y, Y_true, mv_list):
         """
         Process scar data and return results
         """
@@ -169,10 +176,8 @@ class PULSNARClassifier:
         r_fileop = ClassificationFileUtils(ofile=io_files['result_file'], scar=False, keepalpha=True,
                                            alphafile=io_files['alpha_file'])
 
-        # generate record ids for ML processing
-        mv_list = np.array([i for i in range(len(Y_true))])
-
         # get important features using all data
+        logging.info("Finding important features for the ML model")
         X, Y, Y_true, mv_list = shuffle(X, Y, Y_true, mv_list, random_state=123)
         impf = self.get_model_imp_features(X, Y)
 
@@ -192,6 +197,7 @@ class PULSNARClassifier:
             ml_data.generate_pu_dataset(X, Y, Y_true, mv_list)
 
         # divide positive data into clusters
+        logging.info("Diving positives into k clusters")
         if self.n_clusters == 0:
             clster_indx, f_idx = self.determine_clusters(impf, X_pos, self.covar_type, io_files['bic_plot_file'],
                                                          n_clusters=None, csr=self.csrdata, top50p=self.top50p_covars)
@@ -203,7 +209,7 @@ class PULSNARClassifier:
         X_pos, X_unlab = X_pos[:, f_idx], X_unlab[:, f_idx]
 
         # run ML model per cluster
-        for itr in range(self.iterations):
+        for itr in range(self.n_iterations):
             sl = 0  # cluster number
             alpha_list = []
             rec_preds = {}
@@ -228,6 +234,7 @@ class PULSNARClassifier:
                 X_cluster, y_ml_cluster, y_true_cluster, mv_cluster = shuffle(X_cluster, y_ml_cluster, y_true_cluster,
                                                                               mv_cluster, random_state=itr)
 
+                logging.info("Estimating alpha for iteration {0} and cluster {1}".format(itr + 1, sl))
                 preds, y_ml, y_orig, rec_ids, est_alpha = self.run_ml_and_estimate_alpha(X_cluster, y_ml_cluster,
                                                                                          y_true_cluster,
                                                                                          mv_cluster, itr)
@@ -238,9 +245,10 @@ class PULSNARClassifier:
 
                 # probability calibration if needed
                 if self.calibration:
+                    logging.info("Calibrating predicted probabilities for iteration {0} and cluster {1}".
+                                 format(itr + 1, sl))
                     preds, y_ml, y_orig, rec_ids, calibrated_preds = self.apply_calibration(preds, y_ml, y_orig,
-                                                                                            rec_ids, est_alpha,
-                                                                                            k_flips=self.kflips)
+                                                                                            rec_ids, est_alpha)
                 else:
                     calibrated_preds = preds
 
@@ -259,11 +267,13 @@ class PULSNARClassifier:
 
                 # calculate classification performance metrics
                 if self.classification_metrics:
+                    logging.info("Estimating classification performance metrics for iteration {0} and cluster {1}".
+                                 format(itr + 1, sl))
                     mlpe = MLPerformanceEvaluation(data=X_cluster, label=y_ml_cluster, tru_label=y_true_cluster,
                                                    all_rec_ids=mv_cluster, calibration_method=self.calibration_method,
-                                                   csrdata=self.csrdata, k_flips=self.kflips, n_bins=100,
-                                                   alpha=est_alpha, classifier=self.classifier,
-                                                   clf_params_file=self.pulsnar_params_file)
+                                                   csrdata=self.csrdata, k_flips=self.kflips,
+                                                   n_bins=self.calibration_n_bins, alpha=est_alpha,
+                                                   classifier=self.classifier, clf_params_file=self.pulsnar_params_file)
 
                     cls_metrics_preds, cls_metrics_y_true, cls_metrics_recs = \
                         mlpe.prediction_using_probable_positives(preds, y_ml, y_orig, rec_ids)
@@ -333,6 +343,8 @@ class PULSNARClassifier:
         """
         # get ML parameters
         classifier_params = self.get_params(option='classifier')
+        # print("classifier_params: ", classifier_params)
+
         # instantiate the classifier and run it
         ml_clf = ClassificationEstimator(clf=self.classifier, clf_params=classifier_params)
         preds, y_ml, y_orig, rec_ids, _ = ml_clf.train_test_model(X, Y, Y_true, mv_list,
@@ -340,7 +352,7 @@ class PULSNARClassifier:
                                                                   rseed=itr, calibration=None)
 
         # estimate the fraction of positives in the unlabeled set
-        pfe = PositiveFractionEstimation(bin_method=self.bin_method, lowerbw=0.01, upperbw=0.5,
+        pfe = PositiveFractionEstimation(bin_method=self.bin_method, lowerbw=self.lowerbw, upperbw=self.upperbw,
                                          bw_method=self.bw_method, optim=self.optim)
         est_alpha = pfe.estimate_positive_fraction_in_unlabeled(preds, y_ml)
         return preds, y_ml, y_orig, rec_ids, est_alpha
@@ -348,7 +360,7 @@ class PULSNARClassifier:
     def get_params(self, option='classifier'):
         """
         Check if user provided parameters for the classifier. If not, get the default value from the
-        pulsnar_args.ini file
+        PulsnarParams.py file
         """
         # check if param file was provided by user?
         param_file = False
@@ -395,17 +407,17 @@ class PULSNARClassifier:
         else:
             logging.error("Invalid option !!!")
 
-    def apply_calibration(self, preds, y_ml, y_orig, rec_ids, est_alpha, k_flips=20):
+    def apply_calibration(self, preds, y_ml, y_orig, rec_ids, est_alpha):
         """
         Run the calibration algorithm and return calibrated probabilities
         """
         # apply calibration to PU data or only U data
-        cal_probs = CalibrateProbabilities(calibration_data=self.calibration_data, n_bins=100,
+        cal_probs = CalibrateProbabilities(calibration_data=self.calibration_data, n_bins=self.calibration_n_bins,
                                            alpha=est_alpha, calibration_method=self.calibration_method,
                                            smooth_isotonic=self.smooth_isotonic)
 
         preds, y_ml, y_orig, rec_ids, calibrated_preds = \
-            cal_probs.calibrate_predicted_probabilities(preds, y_ml, y_orig, rec_ids, k_flips=k_flips)
+            cal_probs.calibrate_predicted_probabilities(preds, y_ml, y_orig, rec_ids, k_flips=self.kflips)
 
         return preds, y_ml, y_orig, rec_ids, calibrated_preds
 
@@ -442,7 +454,9 @@ class PULSNARClassifier:
 
         # check if number of clusters needs to be estimated
         if n_clusters is None:
-            aic_vals, bic_vals, n_clusters = cls.find_cluster_count(X_pos, f_idx, f_imp_vals, csr=csr)
+            aic_vals, bic_vals, n_clusters = cls.find_cluster_count(X_pos, f_idx, f_imp_vals,
+                                                                    max_clusters=self.max_clusters, n_iters=1,
+                                                                    n_threads_blas=1, top50p=top50p, csr=csr)
             print('Number of clusters in the positive set: ', n_clusters)
             plt = MiscUtils(bic_plot=True)
 
@@ -452,6 +466,6 @@ class PULSNARClassifier:
             # n_clusters = int(input("Check the BIC plot and enter number of cluster: "))
 
         # divide positives into n clusters
-        cluster_indx, sel_idx = cls.divide_positives_into_clusters(X_pos, f_idx, f_imp_vals, n_clusters, top50p=top50p,
-                                                                   csr=csr)
+        cluster_indx, sel_idx = cls.divide_positives_into_clusters(X_pos, f_idx, f_imp_vals, n_clusters,
+                                                                   n_threads_blas=1, top50p=top50p, csr=csr)
         return cluster_indx, sel_idx

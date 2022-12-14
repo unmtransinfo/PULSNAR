@@ -1,9 +1,10 @@
+import logging
+import traceback
+from copy import deepcopy
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
-import logging, traceback
-from copy import deepcopy
 
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.INFO)
 
@@ -70,7 +71,7 @@ class CalibrateProbabilities:
                 orig_probs0), deepcopy(orig_recs0)
 
             # flip labels
-            y_ml0 = self.flip_labels_of_unlabs(probs1, probs0, y_ml0)
+            y_ml0 = self.flip_labels_of_unlabs(probs1, probs0, y_ml0, k_flip)
 
             # generate data for isotonic calibration
             probs, Y, Ys, Y_true, rec_list = None, None, None, None, None
@@ -120,7 +121,7 @@ class CalibrateProbabilities:
         # print("sum of probs (original, calibrated): ", np.sum(probs), np.sum(calibrated_probs))
         return probs, Ys, Y_true, rec_list, calibrated_probs
 
-    def flip_labels_of_unlabs(self, pos_probs, unlab_probs, y):
+    def flip_labels_of_unlabs(self, pos_probs, unlab_probs, y, rs):
         """
         This function flips the labels of some of the unlabeled records. flipping is done using the density of the
         probabilities of positive records.
@@ -135,8 +136,8 @@ class CalibrateProbabilities:
         -------
         y: flipped ML labels
         """
-
         # determine how many labels need to be flipped in each bin
+        np.random.seed(rs)
         bin_edges = [ii / self.n_bins for ii in range(self.n_bins + 1)]
         bin_count = self.how_many_labels_to_flip_in_each_bin(pos_probs, unlab_probs, bin_edges)
         # logging.info("sum of ml labels of unlabeled before flipping: {0}".format(sum(y)))
@@ -156,8 +157,8 @@ class CalibrateProbabilities:
                 diff = 0
             # make sure bin has records
             if kk > 0:
-                # i = np.random.choice(indx, kk, replace=False)
-                i = indx[-1 * kk:]  # change from right -> left
+                i = np.random.choice(indx, kk, replace=False)
+                # i = indx[-1 * kk:]  # change from right -> left
                 y[i] = 1
         # logging.info("sum of ml labels of unlabeled after flipping: {0}".format(sum(y)))
         return y

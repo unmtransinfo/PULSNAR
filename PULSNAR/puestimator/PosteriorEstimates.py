@@ -40,7 +40,8 @@ class PosteriorEstimation:
         else:
             for kk, vv in ml_label_dict.items():
                 recs.append(kk)
-                ml_label.append(min(vv, key=vv.count))
+                # ml_label.append(min(vv, key=vv.count))
+                ml_label.append(np.mean(vv).astype(int))
                 true_label.append(np.mean(true_label_dict[kk]).astype(int))
                 if len(vv) > 1:  # unlabeled records
                     psx = 1 - np.prod(1 - np.asarray(preds_dict[kk]))
