@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "PULSNAR"
+version = "0.0.0"
+authors = [
+  { name="Praveen Kumar", email="pkumar81@unm.edu" },
+  { name="Christophe Lambert", email="cglambert@salud.unm.edu" },
+]
+description = "Positive Unlabeled Learning Algorithm"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/unmtransinfo/PULSNAR"
+"Bug Tracker" = "https://github.com/unmtransinfo/PULSNAR/issues"
