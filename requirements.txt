@@ -2,7 +2,7 @@ numpy
 scipy
 pandas
 pickle
-yaml
+PyYAML
 scikit-learn
 rpy2
 xgboost
