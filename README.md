@@ -34,8 +34,9 @@ Run the following commands on the terminal to install r-base:
 2. bash Miniconda3-latest-Linux-x86_64.sh
 3. conda install -c conda-forge r-base
 
-## How to install PULSNAR
-Steps to install PULSNAR
+## How to install the PULSNAR package
+Steps to install PULSNAR:
+
 - Create a Python3 virtual enviroment by running the following command on the terminal: 
 
 *python3 -m venv pulsnar_env*
@@ -43,5 +44,27 @@ Steps to install PULSNAR
 - Activate the environment by running the following command on the terminal:
 
 *source pulsnar_env/bin/activate*
+
+- Clone this repository:
+
+*git clone git@github.com:unmtransinfo/PULSNAR.git*
+
+- change directory to PULSNAR:
+
+*cd PULSNAR*
+
+- Install all required packages:
+
+*pip install -r requirements.txt*
+
+- Install PULSNAR package using ".whl" built distribution file:
+
+*pip install install/PULSNAR-0.0.0-py3-none-any.whl*
+
+
+
+
+
+
  
 
