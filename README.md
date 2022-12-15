@@ -32,7 +32,9 @@ Although we use our histogram method to select the bandwidth for the beta kernel
 Run the following commands on the terminal to install r-base:
 1. wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 2. bash Miniconda3-latest-Linux-x86_64.sh
-3. conda install -c conda-forge r-base
+3. source YOUR_MINICONDA_INSTALLATION_FOLDER/bin/activate
+4. conda install -c conda-forge r-base
+5. conda deactivate
 
 ## How to install the PULSNAR package
 Steps to install PULSNAR:
