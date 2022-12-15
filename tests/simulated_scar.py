@@ -22,10 +22,10 @@ def scar_data(n_pos, n_unlab, pf, n_features, class_sep):
 
 
 # start of the code
-pf = 0.40  # fraction of positives among unlabeled
-n_pos = 5000  # number of labeled positives
-n_unlab = 100000  # number of unlabeled examples
-n_features = 100  # number of features
+pf = 0.10  # fraction of positives among unlabeled
+n_pos = 500  # number of labeled positives
+n_unlab = 500  # number of unlabeled examples
+n_features = 10  # number of features
 class_sep = 0.3  # class separability
 
 # generatae data
