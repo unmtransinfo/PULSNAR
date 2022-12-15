@@ -36,10 +36,10 @@ GMM_params = {
 
 # files to store IO
 IO_params = {
-    'result_file': 'results/predictions.tsv',
-    'alpha_file': 'results/alpha_estimates.tsv',
-    'imp_feature_file': 'results/model_imp_features.pkl',
-    'bic_plot_file': 'results/bic_vs_cluster_count.png'
+    'result_file': 'predictions.tsv',
+    'alpha_file': 'alpha_estimates.tsv',
+    'imp_feature_file': 'model_imp_features.pkl',
+    'bic_plot_file': 'bic_vs_cluster_count.png'
 }
 
 # parameters for XGBoost GridSearch
