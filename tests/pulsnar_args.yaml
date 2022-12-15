@@ -1,7 +1,7 @@
 # parameters for XGBoost
 XGB_params:
-  n_jobs: 16
-  max_depth: 6
+  n_jobs: 2
+  max_depth: 2
   random_state: 101
 
 # parameters for Logistic Regression
