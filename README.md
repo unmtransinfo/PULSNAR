@@ -2,7 +2,7 @@
 
 ## System Requirements
 The PULSNAR package has been tested on *Ubuntu 22* with *Python 3.10.6*. The package should run on other operating systems with Python 3.7+. We have used the latest version of all Python packages. Required packages are: *numpy, scipy, pandas, pickle, PyYAML, scikit-learn, rpy2, xgboost, catboost, threadpoolctl.*
-Although we use our histogram method to select the bandwidth for the beta kernel estimator, the package supports 4 "R" methods (*nrd0, nrd, bcv*, and *ucv*) to select the bandwidth of a Gaussian kernel density estimator. **nrd**: normal reference distribution, **bcv**: biased cross-validation, and **ucv**: unbiased cross-validation. So, r-base functions are required to run the PULSNAR package. If r-base is not installed, it can be installed using conda. 
+Although we use our histogram method to select the bandwidth for the beta kernel estimator, the package supports 4 "R" methods (*nrd0, nrd, bcv*, and *ucv*) to select the bandwidth of a Gaussian kernel density estimator. **nrd**: normal reference distribution, **bcv**: biased cross-validation, and **ucv**: unbiased cross-validation. So, r-base functions are required to run the PULSNAR package. If r-base is not installed, it can be installed using conda.
 
 ## PULSNAR Parameters
 - **scar**: If SCAR assumption holds, set it to True, else False.
