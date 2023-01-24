@@ -39,7 +39,7 @@ Run the following commands on the terminal to install r-base:
 ## How to install the PULSNAR package
 Steps to install PULSNAR:
 
-- Create a Python3 virtual enviroment by running the following command on the terminal: 
+- Create a Python3 virtual environment by running the following command on the terminal: 
 
 ```
 python3 -m venv pulsnar_env
