@@ -28,42 +28,46 @@ Although we use our histogram method to select the bandwidth for the beta kernel
 - **kflips**: How many times you want to repeat the method to determine probable positives among unlabeled examples.
 - **pulsnar_params_file**: File to pass the parameters for classifiers, clustering algorithm, and setting output files. It should be a ".yml" or ".yaml" file. "pulsnar_args.yaml" in the "tests" folder is an example. The file should be passed as a command line argument. If this file is not passed, the default parameters are used for the classifier.
 
-## How to install r-base 
-Run the following commands on the terminal to install r-base:
-1. wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-2. bash Miniconda3-latest-Linux-x86_64.sh
-3. source YOUR_MINICONDA_INSTALLATION_FOLDER/bin/activate
-4. conda install -c conda-forge r-base
-5. conda deactivate
+## How to install r-base and the PULSNAR package
+Steps to install r-base and the PULSNAR package:
 
-## How to install the PULSNAR package
-Steps to install PULSNAR:
-
-- Create a Python3 virtual environment by running the following command on the terminal: 
+- Run the following command to download the latest Miniconda3 from anaconda.com
 
 ```
-python3 -m venv pulsnar_env
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 ```
 
-- Activate the environment by running the following command on the terminal:
+- Run the following command to install miniconda3
 
 ```
-source pulsnar_env/bin/activate
+bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
-- Clone this repository:
+- Activate miniconda environment by running the following command
+
+```
+source YOUR_MINICONDA_INSTALLATION_FOLDER/bin/activate
+```
+
+- Run the following command to install r-base
 
 ``` 
+conda install -c conda-forge r-base
+```
+
+- Clone this repository
+
+```
 git clone git@github.com:unmtransinfo/PULSNAR.git 
 ```
 
-- change directory to PULSNAR:
+- change directory to PULSNAR
 
 ```
 cd PULSNAR
 ```
 
-- Install all required packages:
+- Install all required packages
 
 ```
 pip install -r requirements.txt
