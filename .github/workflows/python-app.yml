@@ -37,7 +37,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with scar data
       run: |
-        python tests/simulated_scar.py tests/pulsnar_args.yaml
+        python syn_pulscar_alpha_estimation.py
     - name: Test with snar data
       run: |
-        python tests/simulated_snar.py tests/pulsnar_args.yaml
+        python syn_pulsnar_alpha_estimation.py
