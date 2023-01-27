@@ -80,15 +80,15 @@ pip install install/PULSNAR-0.0.0-py3-none-any.whl
 ```
 
 ## How to run the PULSNAR package
-The "tests" folder contains examples showing how to run the PULSNAR package. It needs features, ML labels, fake/real record ids, and true labels if available. For positive examples, the ML label should be 1, and for unlabeled examples, it should be 0. True labels are valid only for the known datasets and are required if you want to compute the classification performance metrics. If you want to override the parameters of the ML classifiers, you can update the file "pulsnar_args.yaml" and pass it as an argument. If "pulsnar_args.yaml" is not given as an argument, the default parameters of the ML classifiers are used.
+Since the PULSNAR package and all required packages were installed under conda environment. To run the PULSNAR, you need to activate the conda environment. The "examples" folder contains examples showing how to run the PULSNAR package. It needs features, ML labels, fake/real record ids, and true labels if available. For positive examples, the ML label should be 1, and for unlabeled examples, it should be 0. True labels are valid only for the known datasets and are required if you want to compute the classification performance metrics. The “testparams” folder inside the “examples” folder has several “.yaml” files. These files have optimized parameters for XGBoost, CatBoost, and GMM for each test dataset. The value for the XGBoost parameter “n_jobs” is set to 4. You can increase/decrease the value of “n_jobs” depending on the number of CPU cores on your machine. If you want to override the parameters, you can update the file "alpha.yaml" and pass it as an argument. If "alpha.yaml" is not given as an argument, the default parameters of the ML classifiers are used.
 
 There are two steps to use the PULSNAR package:
 1. instantiate the *PULSNARClassifier()* with the parameters explained above.
 
 ```
+# get parameters from user for PULSNAR algorithm.
 if len(sys.argv) < 2:
-    print("PULSNAR will run with default parameters")
-    user_param_file = None
+    user_param_file = 'testparams/snar_alpha.yaml'
 else:
     user_param_file = sys.argv[1]
 
@@ -112,11 +112,3 @@ E.g.
 ```
 {'estimated_alpha': 0.2021, 'prediction_file': 'results/predictions.tsv', 'alpha_file': 'results/alpha_estimates.tsv', 'pulsnar_brier_score': 0.09333678005578955, 'pulsnar_average_precision_score': 0.8715526453230149, 'pulsnar_auc_roc_score': 0.94711006925, 'pulsnar_f1_score': 0.7716913808251601, 'pulsnar_mcc_score': 0.697232752378723, 'pulsnar_accuracy': 0.8787333333333334, 'true_alpha': 0.2}
 ```
-*simulated_scar.py* has code to run the package for the simulated SCAR data. You can use one of the following commands on the terminal in the "pulsnar_env" environment to run it.
-
-```
-simulated_scar.py pulsnar_args.yaml
-```
-or 
-```
-simulated_scar.py 
