@@ -39,7 +39,8 @@ def pulsnar_performance_metrics(preds, y_orig, scar=True):
 # *** Methods to return calibrated probabilities ****
 class MLPerformanceEvaluation:
     def __init__(self, data=None, label=None, tru_label=None, all_rec_ids=None, calibration_method='isotonic',
-                 csrdata=False, k_flips=1, n_bins=100, alpha=None, classifier='xgboost', clf_params_file=None):
+                 csrdata=False, k_flips=1, n_bins=100, alpha=None, classifier='xgboost', clf_params_file=None,
+                 scar=True):
 
         # set variables
         if data is None:
@@ -84,28 +85,57 @@ class MLPerformanceEvaluation:
         self.k_flips = k_flips
         self.classifier = classifier
         self.clf_params_file = clf_params_file
+        self.scar = scar
 
-    def prediction_using_probable_positives(self, preds, y_ml, y_orig, rec_ids):
+    def prediction_using_probable_positives(self, preds, y_ml, y_orig, rec_ids, posterior_vals=True):
         """
-        Run the ML using probable positives, labeled positives and the remaining of the unlabeled records 
+        Run the ML using probable positives, labeled positives and the remaining of the unlabeled records.
+        If scar data, identify probable positives and run ML with probable positives, labeled positives,
+        and the remaining records.
+        If SNAR data, apply calibration for each cluster. Once all clusters are processed, compute posterior
+        probabilities using the formula p=1-(1-p1)...(1-pk). Then identify probable positives and run ML with probable
+        positives, labeled positives, and the remaining records.
         """
-        # calibrated predicted probabilities of only unlabeled records
-        cal_probs = CalibrateProbabilities(calibration_data='U', n_bins=self.n_bins, alpha=self.alpha,
-                                           calibration_method=self.calibration_method, smooth_isotonic=False)
+        if self.scar:
+            # calibrated predicted probabilities of only unlabeled records
+            cal_probs = CalibrateProbabilities(calibration_data='U', n_bins=self.n_bins, alpha=self.alpha,
+                                               calibration_method=self.calibration_method, smooth_isotonic=False)
 
-        u_preds, u_y_ml, u_y_orig, u_rec_ids, u_calibrated_preds = \
-            cal_probs.calibrate_predicted_probabilities(preds, y_ml, y_orig, rec_ids, k_flips=self.k_flips)
+            u_preds, u_y_ml, u_y_orig, u_rec_ids, u_calibrated_preds = \
+                cal_probs.calibrate_predicted_probabilities(preds, y_ml, y_orig, rec_ids, k_flips=self.k_flips)
 
-        # find probable positives among unlabeled and update ml labels
-        X, Y, Y_true, rec_list = self.identify_probable_positives(u_rec_ids, u_calibrated_preds)
+            # find probable positives among unlabeled and update ml labels
+            X, Y, Y_true, rec_list = self.identify_probable_positives(u_rec_ids, u_calibrated_preds)
 
-        # run ML to get predictions
-        X, Y, Y_true, rec_list = shuffle(X, Y, Y_true, rec_list, random_state=123)
-        clf_params = self.get_params()
-        ml_clf = ClassificationEstimator(clf=self.classifier, clf_params=clf_params)
-        preds, y_ml, y_orig, recs, _ = ml_clf.train_test_model(X, Y, Y_true, rec_list, k_folds=5,
-                                                               rseed=123, calibration=None)
-        return preds, y_orig, recs
+            # run ML to get predictions
+            X, Y, Y_true, rec_list = shuffle(X, Y, Y_true, rec_list, random_state=123)
+            clf_params = self.get_params()
+            ml_clf = ClassificationEstimator(clf=self.classifier, clf_params=clf_params)
+            preds, y_ml, y_orig, recs, _ = ml_clf.train_test_model(X, Y, Y_true, rec_list, k_folds=5,
+                                                                   rseed=123, calibration=None)
+            return preds, y_orig
+        else:
+            if posterior_vals:  # all clusters have been processed
+                u_rec_ids, u_calibrated_preds = rec_ids, preds
+                # find probable positives among unlabeled and update ml labels
+                X, Y, Y_true, rec_list = self.identify_probable_positives(u_rec_ids, u_calibrated_preds)
+
+                # run ML to get predictions
+                X, Y, Y_true, rec_list = shuffle(X, Y, Y_true, rec_list, random_state=123)
+                clf_params = self.get_params()
+                ml_clf = ClassificationEstimator(clf=self.classifier, clf_params=clf_params)
+                preds, y_ml, y_orig, recs, _ = ml_clf.train_test_model(X, Y, Y_true, rec_list, k_folds=5,
+                                                                       rseed=123, calibration=None)
+                return preds, y_orig
+            else:
+                # calibrated predicted probabilities of only unlabeled records
+                cal_probs = CalibrateProbabilities(calibration_data='U', n_bins=self.n_bins, alpha=self.alpha,
+                                                   calibration_method=self.calibration_method, smooth_isotonic=False)
+
+                u_preds, u_y_ml, u_y_orig, u_rec_ids, u_calibrated_preds = \
+                    cal_probs.calibrate_predicted_probabilities(preds, y_ml, y_orig, rec_ids, k_flips=self.k_flips)
+
+                return u_preds, u_y_ml, u_y_orig, u_rec_ids, u_calibrated_preds
 
     def identify_probable_positives(self, u_rec_ids, u_calibrated_preds):
         """

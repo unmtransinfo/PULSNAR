@@ -3,7 +3,7 @@
 # Parameters for XGBoost. If you want to add more parameters of XGBoost,
 # check the list here: https://xgboost.readthedocs.io/en/stable/parameter.html
 XGB_params = {
-    'n_jobs': 4,
+    'n_jobs': 2,
     'max_depth': 6,
     'scale_pos_weight': 1.0,
     'random_state': 101

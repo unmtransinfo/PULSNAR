@@ -73,8 +73,8 @@ class PULSNARClassifier:
             tru_label = label
 
         # process SCAR or SNAR data
-        logging.info("PULSNAR will return estimated alpha, output files, and classification performance metrics "
-                     "if true labels are provided")
+        # logging.info("PULSNAR will return estimated alpha, output files, and classification performance metrics "
+        #              "if true labels are provided")
         if self.scar:
             return self.scar_data_processing(data, label, tru_label, rec_list)
         else:
@@ -100,7 +100,7 @@ class PULSNARClassifier:
                                            alphafile=io_files['alpha_file'])
         # run PULSCAR and get results
         for itr in range(self.n_iterations):
-            logging.info("Estimating alpha for iteration {0}".format(itr+1))
+            # logging.info("Estimating alpha for iteration {0}".format(itr+1))
             X, Y, Y_true, mv_list = shuffle(X, Y, Y_true, mv_list, random_state=itr)
             preds, y_ml, y_orig, rec_ids, est_alpha = self.run_ml_and_estimate_alpha(X, Y, Y_true, mv_list, itr)
             # store the estimated alpha
@@ -108,7 +108,7 @@ class PULSNARClassifier:
 
             # probability calibration if needed
             if self.calibration:
-                logging.info("Calibrating predicted probabilities for iteration {0}".format(itr + 1))
+                # logging.info("Calibrating predicted probabilities for iteration {0}".format(itr + 1))
                 preds, y_ml, y_orig, rec_ids, calibrated_preds = self.apply_calibration(preds, y_ml, y_orig, rec_ids,
                                                                                         est_alpha)
             else:
@@ -124,13 +124,14 @@ class PULSNARClassifier:
 
             # calculate classification performance metrics
             if self.classification_metrics:
-                logging.info("Estimating classification performance metrics for iteration {0}".format(itr + 1))
+                # logging.info("Estimating classification performance metrics for iteration {0}".format(itr + 1))
                 mlpe = MLPerformanceEvaluation(data=X, label=Y, tru_label=Y_true, all_rec_ids=mv_list,
                                                calibration_method=self.calibration_method, csrdata=self.csrdata,
                                                k_flips=self.kflips, n_bins=self.calibration_n_bins, alpha=est_alpha,
-                                               classifier=self.classifier, clf_params_file=self.pulsnar_params_file)
+                                               classifier=self.classifier, clf_params_file=self.pulsnar_params_file,
+                                               scar=True)
 
-                cls_metrics_preds, cls_metrics_y_true, _ = mlpe.prediction_using_probable_positives(preds, y_ml, y_orig,
+                cls_metrics_preds, cls_metrics_y_true = mlpe.prediction_using_probable_positives(preds, y_ml, y_orig,
                                                                                                     rec_ids)
                 itr_bs, itr_aps, itr_auc, itr_f1, itr_mcc, itr_acc = \
                     pulsnar_performance_metrics(cls_metrics_preds, cls_metrics_y_true, scar=True)
@@ -177,7 +178,7 @@ class PULSNARClassifier:
                                            alphafile=io_files['alpha_file'])
 
         # get important features using all data
-        logging.info("Finding important features for the ML model")
+        # logging.info("Finding important features for the ML model")
         X, Y, Y_true, mv_list = shuffle(X, Y, Y_true, mv_list, random_state=123)
         impf = self.get_model_imp_features(X, Y)
 
@@ -197,7 +198,7 @@ class PULSNARClassifier:
             ml_data.generate_pu_dataset(X, Y, Y_true, mv_list)
 
         # divide positive data into clusters
-        logging.info("Diving positives into k clusters")
+        # logging.info("Dividing positives into k clusters")
         if self.n_clusters == 0:
             clster_indx, f_idx = self.determine_clusters(impf, X_pos, self.covar_type, io_files['bic_plot_file'],
                                                          n_clusters=None, csr=self.csrdata, top50p=self.top50p_covars)
@@ -212,16 +213,25 @@ class PULSNARClassifier:
         for itr in range(self.n_iterations):
             sl = 0  # cluster number
             alpha_list = []
+            # variables used for calibration
             rec_preds = {}
             rec_cal_preds = {}
             rec_y_ml = {}
             rec_y_orig = {}
-            cls_metrics_rec_preds = {}
-            cls_metrics_rec_y_true = {}
+
+            # variables used for classification performance calculation
+            unlab_rec_preds = {}
+            unlab_rec_cal_preds = {}
+            unlab_rec_y_ml = {}
+            unlab_rec_y_orig = {}
 
             # go through each cluster
             for idx1 in clster_indx:
                 sl += 1
+                # since data will be divided for 5-fold CV, make sure each fold has at least 2 records
+                if len(idx1) < 10:
+                    continue
+
                 if self.csrdata:
                     X_cluster = sparse.vstack((X_pos[idx1], X_unlab), format='csr')
                 else:
@@ -234,7 +244,7 @@ class PULSNARClassifier:
                 X_cluster, y_ml_cluster, y_true_cluster, mv_cluster = shuffle(X_cluster, y_ml_cluster, y_true_cluster,
                                                                               mv_cluster, random_state=itr)
 
-                logging.info("Estimating alpha for iteration {0} and cluster {1}".format(itr + 1, sl))
+                # logging.info("Estimating alpha for iteration {0} and cluster {1}".format(itr + 1, sl))
                 preds, y_ml, y_orig, rec_ids, est_alpha = self.run_ml_and_estimate_alpha(X_cluster, y_ml_cluster,
                                                                                          y_true_cluster,
                                                                                          mv_cluster, itr)
@@ -245,8 +255,8 @@ class PULSNARClassifier:
 
                 # probability calibration if needed
                 if self.calibration:
-                    logging.info("Calibrating predicted probabilities for iteration {0} and cluster {1}".
-                                 format(itr + 1, sl))
+                    # logging.info("Calibrating predicted probabilities for iteration {0} and cluster {1}".
+                    #              format(itr + 1, sl))
                     preds, y_ml, y_orig, rec_ids, calibrated_preds = self.apply_calibration(preds, y_ml, y_orig,
                                                                                             rec_ids, est_alpha)
                 else:
@@ -267,25 +277,30 @@ class PULSNARClassifier:
 
                 # calculate classification performance metrics
                 if self.classification_metrics:
-                    logging.info("Estimating classification performance metrics for iteration {0} and cluster {1}".
-                                 format(itr + 1, sl))
+                    # logging.info("Estimating classification performance metrics for iteration {0} and cluster {1}".
+                    #             format(itr + 1, sl))
                     mlpe = MLPerformanceEvaluation(data=X_cluster, label=y_ml_cluster, tru_label=y_true_cluster,
                                                    all_rec_ids=mv_cluster, calibration_method=self.calibration_method,
                                                    csrdata=self.csrdata, k_flips=self.kflips,
                                                    n_bins=self.calibration_n_bins, alpha=est_alpha,
-                                                   classifier=self.classifier, clf_params_file=self.pulsnar_params_file)
+                                                   classifier=self.classifier, clf_params_file=self.pulsnar_params_file,
+                                                   scar=False)
 
-                    cls_metrics_preds, cls_metrics_y_true, cls_metrics_recs = \
-                        mlpe.prediction_using_probable_positives(preds, y_ml, y_orig, rec_ids)
+                    u_preds, u_y_ml, u_y_orig, u_rec_ids, u_cal_preds = \
+                        mlpe.prediction_using_probable_positives(preds, y_ml, y_orig, rec_ids, posterior_vals=False)
 
-                    # store prediction to compute posterior
-                    for i, r in enumerate(cls_metrics_recs):
-                        if r in cls_metrics_rec_preds:
-                            cls_metrics_rec_preds[r].append(cls_metrics_preds[i])
-                            cls_metrics_rec_y_true[r].append(cls_metrics_y_true[i])
+                    # store prediction for unlabeled examples to compute posterior
+                    for i, r in enumerate(u_rec_ids):
+                        if r in unlab_rec_preds:
+                            unlab_rec_preds[r].append(u_preds[i])
+                            unlab_rec_cal_preds[r].append(u_cal_preds[i])
+                            unlab_rec_y_ml[r].append(u_y_ml[i])
+                            unlab_rec_y_orig[r].append(u_y_orig[i])
                         else:
-                            cls_metrics_rec_preds[r] = [cls_metrics_preds[i]]
-                            cls_metrics_rec_y_true[r] = [cls_metrics_y_true[i]]
+                            unlab_rec_preds[r] = [u_preds[i]]
+                            unlab_rec_cal_preds[r] = [u_cal_preds[i]]
+                            unlab_rec_y_ml[r] = [u_y_ml[i]]
+                            unlab_rec_y_orig[r] = [u_y_orig[i]]
 
             # store est alpha per iteration
             est_alphas.append(sum(alpha_list))
@@ -304,10 +319,19 @@ class PULSNARClassifier:
             if self.classification_metrics:
                 # compute the final posterior using all clusters' predictions
                 post_est = PosteriorEstimation(scar=False)
-                cls_metrics_preds, _, cls_metrics_y_true, _, _ = \
-                    post_est.compute_posterior_probs(cls_metrics_rec_preds, cls_metrics_rec_y_true,
-                                                     cls_metrics_rec_y_true, cal_preds_dict=None)
+                un_preds, un_y_ml, un_y_orig, un_rec_ids, un_cal_preds = \
+                    post_est.compute_posterior_probs(unlab_rec_preds, unlab_rec_y_ml, unlab_rec_y_orig,
+                                                     cal_preds_dict=unlab_rec_cal_preds)
 
+                mlpe = MLPerformanceEvaluation(data=X, label=Y, tru_label=Y_true, all_rec_ids=mv_list,
+                                               calibration_method=self.calibration_method, csrdata=self.csrdata,
+                                               k_flips=self.kflips, n_bins=self.calibration_n_bins,
+                                               alpha=sum(alpha_list), classifier=self.classifier,
+                                               clf_params_file=self.pulsnar_params_file, scar=False)
+
+                cls_metrics_preds, cls_metrics_y_true = mlpe.prediction_using_probable_positives(un_cal_preds, un_y_ml,
+                                                                                                 un_y_orig, un_rec_ids,
+                                                                                                 posterior_vals=True)
                 # calculate perofmance metrics
                 itr_bs, itr_aps, itr_auc, itr_f1, itr_mcc, itr_acc = \
                     pulsnar_performance_metrics(cls_metrics_preds, cls_metrics_y_true, scar=False)

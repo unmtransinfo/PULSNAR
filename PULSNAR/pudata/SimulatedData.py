@@ -22,7 +22,8 @@ class SklearnSimulatedData:
         self.n_bins = 5
 
     def generate_simulated_data(self, n_pos=10000, n_unlab=10000, pf_in_unlab=0.1, n_features=25, n_classes=2,
-                                class_sep=0.3, equal_frac_in_pos=True, discrete_features=False, scar=True, rseed=7):
+                                class_sep=0.3, n_informative=0, n_clusters_per_class=1, equal_frac_in_pos=True, 
+                                discrete_features=False, scar=True, rseed=7):
         """
         Use this function to generate simulated data using the given parameters
 
@@ -49,9 +50,15 @@ class SklearnSimulatedData:
         self.params['n_features'] = n_features
         self.params['n_classes'] = n_classes
         self.params['class_sep'] = class_sep
+        self.params['n_clusters_per_class'] = n_clusters_per_class
         self.params['random_state'] = rseed
-        self.params['n_informative'] = n_features - self.params['n_redundant'] - self.params['n_repeated']
+        if n_informative == 0:
+            self.params['n_informative'] = n_features - self.params['n_redundant'] - self.params['n_repeated']
+        else:
+            self.params['n_informative'] = n_informative
         self.rseed = rseed
+
+        # print(self.params)
 
         # self.params['n_informative'] = n_classes
         #if scar:
@@ -77,8 +84,8 @@ class SklearnSimulatedData:
         # generate simulated data
         self.data, self.labels = make_classification(**self.params)
         # print the count for each class
-        for c in np.unique(self.labels):
-            logging.info("class {0} records: {1}".format(c, np.sum(self.labels == c)))
+        # for c in np.unique(self.labels):
+        #     logging.info("class {0} records: {1}".format(c, np.sum(self.labels == c)))
 
         # call sub-routines for SCAR and SNAR data
         if scar:
@@ -136,8 +143,8 @@ class SklearnSimulatedData:
         # combined indices and get original labels + data
         idx = np.concatenate([idx0, idx1])
         y_orig = self.labels[idx]
-        for v in np.unique(y_orig):
-            logging.info("PU data has {0} records from class {1}".format(np.sum(y_orig == v), v))
+        # for v in np.unique(y_orig):
+        #     logging.info("PU data has {0} records from class {1}".format(np.sum(y_orig == v), v))
         y_ml = np.concatenate([[0] * len(idx0), [1] * len(idx1)])
         idx, y_ml, y_orig = shuffle(idx, y_ml, y_orig, random_state=self.rseed)
 
@@ -187,7 +194,7 @@ class SklearnSimulatedData:
             n_pos = [int(round(p_count / self.p_types))] * self.p_types
         else:
             n_pos = self.generate_k_randint(p_count)
-        logging.info("positive counts in positive set: {0}".format(n_pos))
+        # logging.info("positive counts in positive set: {0}".format(n_pos))
         # select indices
         i = 0
         for v in unique_labels[1:]:
@@ -200,7 +207,7 @@ class SklearnSimulatedData:
         case_count = int(u_count * frac)
         # count of different types of positives in the unlabeled set
         p_count_in_unlab = self.different_pos_count_in_unlab(case_count)
-        logging.info("positive counts in unlabeled set: {0}".format(p_count_in_unlab))
+        # logging.info("positive counts in unlabeled set: {0}".format(p_count_in_unlab))
         # select indices
         i = 0
         for v in unique_labels[1:]:
@@ -218,8 +225,8 @@ class SklearnSimulatedData:
         # combine indices
         idx = np.concatenate([idx0, idx1])
         y_orig = self.labels[idx]
-        for v in np.unique(y_orig):
-            logging.info("PU data has {0} records from class {1}".format(np.sum(y_orig == v), v))
+        # for v in np.unique(y_orig):
+        #     logging.info("PU data has {0} records from class {1}".format(np.sum(y_orig == v), v))
         y_ml = np.concatenate([[0] * len(idx0), [1] * len(idx1)])
         idx, y_ml, y_orig = shuffle(idx, y_ml, y_orig, random_state=self.rseed)
 
@@ -245,7 +252,7 @@ class SklearnSimulatedData:
         # k_nums = np.random.dirichlet(np.ones(self.p_types), size=1)[0] * rec_count
         # k_nums = [round(k) for k in k_nums]
         k_nums = np.random.default_rng().multinomial(rec_count, [1 / self.p_types] * self.p_types, size=1)[0]
-        logging.info("sum of random integers: {0}, {1}".format(np.sum(k_nums), rec_count))
+        # logging.info("sum of random integers: {0}, {1}".format(np.sum(k_nums), rec_count))
         return k_nums
 
     def different_pos_count_in_unlab(self, case_count):
@@ -304,14 +311,14 @@ class SklearnSimulatedData:
         y_orig: true labels of the data
         """
 
-        print("Generate data with flipped labels")
+        # print("Generate data with flipped labels")
         # get indices of positive and unlabeled records (P=1 and U=0)
         random.seed(self.rseed)
         pos_0 = np.where(self.labels == 0)[0]
         random.shuffle(pos_0)
         pos_1 = np.where(self.labels == 1)[0]
         random.shuffle(pos_1)
-        logging.info("positive count: {0}, unlabeled count: {1}".format(len(pos_1), len(pos_0)))
+        # logging.info("positive count: {0}, unlabeled count: {1}".format(len(pos_1), len(pos_0)))
 
         # record count in positive and unlabeled sets
         counts = [p_count, [round(u_count * frac), round((1 - frac) * u_count)]]
@@ -330,8 +337,8 @@ class SklearnSimulatedData:
         # combined indices
         idx = np.concatenate([idx0, idx1])
         y_orig = self.labels[idx]
-        for v in np.unique(y_orig):
-            logging.info("PU data has {0} records from class {1}".format(np.sum(y_orig == v), v))
+        # for v in np.unique(y_orig):
+        #     logging.info("PU data has {0} records from class {1}".format(np.sum(y_orig == v), v))
         y_ml = np.concatenate([[1] * len(idx0), [0] * len(idx1)])
         idx, y_ml, y_orig = shuffle(idx, y_ml, y_orig, random_state=self.rseed)
 
@@ -372,7 +379,7 @@ class SklearnSimulatedData:
             idx = np.where(self.labels == j)[0]
             random.shuffle(idx)
             idx_list[j] = idx
-            logging.info("class {0} has {1} records".format(j, len(idx)))
+            # logging.info("class {0} has {1} records".format(j, len(idx)))
 
         # indices for unlabeled set
         control_count = int(u_count * (1 - frac))
@@ -380,7 +387,7 @@ class SklearnSimulatedData:
         case_count = int(u_count * frac)
         # count of different types of positives in the unlabeled set
         p_count_in_unlab = self.different_pos_count_in_unlab(case_count)
-        logging.info("positive counts in unlabeled set: {0}".format(p_count_in_unlab))
+        # logging.info("positive counts in unlabeled set: {0}".format(p_count_in_unlab))
         # select indices
         i = 0
         for v in unique_labels[1:]:
@@ -389,7 +396,7 @@ class SklearnSimulatedData:
 
         # indices for positive set
         idx1 = list(idx_list[unique_labels[0]][control_count: (control_count + p_count)])
-        logging.info("idx0 and idx1 length: {0}, {1}".format(len(idx0), len(idx1)))
+        # logging.info("idx0 and idx1 length: {0}, {1}".format(len(idx0), len(idx1)))
         # check if above logic worked fine
         if len(set(idx0).intersection(idx1)) > 0:
             traceback.print_stack()
@@ -401,8 +408,8 @@ class SklearnSimulatedData:
         # combine indices
         idx = np.concatenate([idx0, idx1])
         y_orig = self.labels[idx]
-        for v in np.unique(y_orig):
-            logging.info("PU data has {0} records from class {1}".format(np.sum(y_orig == v), v))
+        # for v in np.unique(y_orig):
+        #     logging.info("PU data has {0} records from class {1}".format(np.sum(y_orig == v), v))
         y_ml = np.concatenate([[1] * len(idx0), [0] * len(idx1)])
         idx, y_ml, y_orig = shuffle(idx, y_ml, y_orig)
 

@@ -1,0 +1,33 @@
+XGB_params:
+  n_jobs: 4
+  max_depth: 4
+  eval_metric: 'logloss'
+  random_state: 101
+
+# parameters for Logistic Regression
+LR_params:
+  penalty: 'l2'
+  max_iter: 5000
+  verbose: 0
+  n_jobs: 16
+  random_state: 101
+
+# parameters for CatBoost
+CB_params:
+  thread_count: 16
+  random_seed: 101
+  depth: 5
+  iterations: 500
+  learning_rate: 0.1
+
+# parameters for GMM
+GMM_params:
+  n_components: 1
+  random_state: 101
+
+# output files to store results
+IO_params:
+  result_file: 'results/predictions.tsv'
+  alpha_file: 'results/alpha_estimates.tsv'
+  imp_feature_file: 'results/model_imp_features.pkl'
+  bic_plot_file: 'results/bic_vs_cluster_count.png'
