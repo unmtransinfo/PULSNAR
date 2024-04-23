@@ -1,6 +1,7 @@
 XGB_params:
   n_jobs: 16
   max_depth: 4
+  learning_rate: 0.10
   eval_metric: 'logloss'
   random_state: 101
 

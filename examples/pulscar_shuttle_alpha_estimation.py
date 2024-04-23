@@ -94,7 +94,7 @@ def create_ml_dataset(data, frac, itr=0):
 # ****************************************************** #
 inpfile = "UCIdata/SNAR/shuttle/shuttle.data"
 pfracs = [0.01, 0.05, 0.10, 0.15]  # positive fraction
-n_iterations = 1
+n_iterations = 40
 iter_alpha = {}
 
 # get parameters from user for PULSNAR algorithm.
@@ -119,8 +119,7 @@ for pf in pfracs:
 
         # instantiate PULSNARClassifier
         pls = PULSNAR.PULSNARClassifier(scar=True, csrdata=False, classifier='xgboost',
-                                        bin_method='square_root', bw_method='hist', lowerbw=0.01, upperbw=0.5,
-                                        optim='local',
+                                        bin_method='rice', bw_method='hist', lowerbw=0.02, upperbw=0.5, optim='local',
                                         calibration=False, calibration_data='PU', calibration_method='isotonic',
                                         calibration_n_bins=100, smooth_isotonic=False,
                                         classification_metrics=False,
@@ -137,3 +136,4 @@ print("\n")
 print("Algorithm\tIteration\tTrue_alpha\tEst_alpha")
 for k, v in iter_alpha.items():
     print("PULSCAR" + "\t" + str(k[0]) + "\t" + str(k[1]) + "\t" + str(v))
+print("results for shuttle dataset are above")

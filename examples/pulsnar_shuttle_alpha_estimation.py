@@ -120,7 +120,7 @@ for pf in pfracs:
         # instantiate PULSNARClassifier
         pls = PULSNAR.PULSNARClassifier(scar=False, csrdata=False, classifier='xgboost',
                                         n_clusters=0, max_clusters=15, covar_type='full', top50p_covars=False,
-                                        bin_method='fd', bw_method='hist', lowerbw=0.02, upperbw=0.5, optim='local',
+                                        bin_method='rice', bw_method='hist', lowerbw=0.02, upperbw=0.5, optim='local',
                                         calibration=False, calibration_data='PU', calibration_method='isotonic',
                                         calibration_n_bins=100, smooth_isotonic=False,
                                         classification_metrics=False,
@@ -137,3 +137,4 @@ print("\n")
 print("Algorithm\tIteration\tTrue_alpha\tEst_alpha")
 for k, v in iter_alpha.items():
     print("PULSNAR" + "\t" + str(k[0]) + "\t" + str(k[1]) + "\t" + str(v))
+print("results for shuttle dataset are above")
