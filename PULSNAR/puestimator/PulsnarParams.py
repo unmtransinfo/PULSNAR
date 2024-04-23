@@ -34,6 +34,14 @@ GMM_params = {
     'random_state': 101
 }
 
+# Parameters for NMF algorithm. If you want to add more parameters of NMF,
+# check the list here: https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html
+NMF_params = {
+    'n_components': 1,
+    'max_iter': 500,
+    'random_state': 101
+}
+
 # files to store IO
 IO_params = {
     'result_file': 'predictions.tsv',
@@ -47,4 +55,3 @@ xgb_grid_params = {
     'eta': [0.01, 0.03, 0.05, 0.1, 0.3, 0.5, 0.7, 1],
     'max_depth': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15]
 }
-

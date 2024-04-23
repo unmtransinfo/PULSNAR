@@ -60,12 +60,6 @@ class SklearnSimulatedData:
 
         # print(self.params)
 
-        # self.params['n_informative'] = n_classes
-        #if scar:
-        #    self.params['n_clusters_per_class'] = 2  # use default value for the SCAR data
-        #else:
-        #    self.params['n_clusters_per_class'] = 1  # set it to 1
-
         # basic checks before processing
         if scar and n_classes != 2:
             traceback.print_stack()

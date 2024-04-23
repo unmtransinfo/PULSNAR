@@ -193,8 +193,8 @@ def minimize_mse(b, probs, n_bins, hdensity):
 
     _, kdensity = compute_beta_kernel_density(probs, n_bins=n_bins, bw=b)
     # kdensity = compute_gaussian_kde(probs, b, n_bins)
-    # return np.mean(pow(kdensity - hdensity, 2))
-    return distance.jensenshannon(kdensity, hdensity)
+    return np.mean(pow(kdensity - hdensity, 2))
+    # return distance.jensenshannon(kdensity, hdensity)
 
 
 def err_function(estrange, unlab_kde=None, case_kde=None):

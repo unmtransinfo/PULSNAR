@@ -9,7 +9,8 @@ import catboost as cb
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.mixture import GaussianMixture
-from scipy.signal import argrelmin
+from sklearn.decomposition import NMF
+from scipy.signal import argrelmin, argrelmax
 from collections import Counter
 from scipy import sparse
 import traceback
@@ -313,21 +314,24 @@ class ClusteringEstimator(BaseEstimator):
         if clf is None or clf == "gmm":
             # Use GMM if no clf is provided
             model = GaussianMixture(**clf_params)
+        elif clf == "nmf":
+            # Use NMF for clustering
+            model = NMF(**clf_params)
         else:
             traceback.print_stack()
             logging.error("MLEstimators.py needs to be modified to support {0}".format(clf))
             exit(-1)
 
-        # check if the classifier supports fit and predict_proba
+        # check if the classifier supports fit and aic/bic
         if not hasattr(model, "fit"):
             traceback.print_stack()
             logging.error("The selected algorithm {0} does not have fit() function".format(clf))
             exit(-1)
-        if not hasattr(model, "bic"):
+        if not hasattr(model, "bic") and clf == "gmm":
             traceback.print_stack()
             logging.error("The selected algorithm {0} does not have bic() function".format(clf))
             exit(-1)
-        if not hasattr(model, "aic"):
+        if not hasattr(model, "aic") and clf == "gmm":
             traceback.print_stack()
             logging.error("The selected algorithm {0} does not have aic() function".format(clf))
             exit(-1)
@@ -375,11 +379,15 @@ class ClusteringEstimator(BaseEstimator):
             """
             vals = np.asarray(vals)
             minima_bic_idx = argrelmin(vals)[0]
-            if len(minima_bic_idx) > 0:     # function is not monotonically increasing or decreasing
-                minima_vals = vals[minima_bic_idx]
-                i = np.argmin(minima_vals)
-                return minima_bic_idx[i] + 1    # cluster count starts from 1, not 0 and hence +1
-            else:   # use knee point detection algorithm
+            # print("minima_bic_idx: ", minima_bic_idx)
+            if len(minima_bic_idx) > 0:  # function is not monotonically increasing or decreasing
+                bic_slope = np.diff(vals)
+                return min(np.argmin(vals), minima_bic_idx[0], np.argmax(np.diff(bic_slope)) + 3)+1
+
+                # minima_vals = vals[minima_bic_idx]
+                # i = np.argmin(minima_vals)
+                # return minima_bic_idx[i] + 1    # cluster count starts from 1, not 0 and hence +1
+            else:  # use knee point detection algorithm
                 diff_list = []
                 curr_val, prev_val, next_val = vals[0], vals[0], vals[0]
                 for m in range(len(vals) - 1):
@@ -396,7 +404,7 @@ class ClusteringEstimator(BaseEstimator):
                 # create a dictionary with cluster count as key and local minimum in diff_list as value
                 local_min = {}
                 for m in minima_idx:
-                    local_min[m+1] = diff_list[m]   # cluster count starts from 1, not 0. so m+1
+                    local_min[m + 1] = diff_list[m]  # cluster count starts from 1, not 0. so m+1
                 local_min = Counter(local_min).most_common()  # sort local_min in decreasing order
 
                 # find the angle for each local minimum
@@ -474,6 +482,86 @@ class ClusteringEstimator(BaseEstimator):
 
         # predict labels using train model
         labels = gm.predict(data)
+
+        # group data by their labels
+        cluster_indx = []
+        for v in np.unique(labels):
+            idx = list(np.where(labels == v)[0])
+            cluster_indx.append(idx)
+
+        return cluster_indx, sel_idx
+
+    def find_cluster_count_nmf(self, data, f_idx, f_imp_vals, max_clusters=25, n_threads_blas=1, top50p=True,
+                               csr=False):
+        """
+        This function finds the number of clusters using NMF method
+
+        Parameters
+        ----------
+        data: ML data
+        f_idx: indices of the important features
+        f_imp_vals: importance value of the important features
+        max_clusters: max clusters to use in the clustering algorithm
+        n_threads_blas: number of threads for blas
+        top50p: select only top 50 percent of the important features?
+        csr: data are in CSR format?
+
+        Returns
+        -------
+        AIC value,
+        BIC value,
+        number of clusters
+        """
+
+        bic_values = []
+        # logging.info("Scale the data feature by their importance value")
+        data, _ = preprocess_data(data, f_idx, f_imp_vals, top50p, csr)
+
+        # Run GMM clustering with updated params
+        with threadpool_limits(limits=n_threads_blas, user_api='blas'):
+            for n_clusters in range(1, max_clusters + 1, 1):
+                self.clf_params['n_components'] = n_clusters
+                nmf_model = NMF(**self.clf_params).fit(data)
+                W, H = nmf_model.transform(data), nmf_model.components_
+                delta = np.sqrt(np.sum(np.square(data - np.matmul(W, H))) / np.size(data))
+                bic = -2 * np.log(delta) + np.log(data.shape[0]) * n_clusters
+                bic_values.append(bic)
+        return bic_values, bic_values, np.argmax(np.diff(bic_values)) + 2
+
+    def divide_positives_into_clusters_nmf(self, data, f_idx, f_imp_vals, n_clusters, n_threads_blas=1, top50p=True,
+                                           csr=False):
+        """
+        This function divides positive data into n clusters using NMF algorithm
+
+        Parameters
+        ----------
+        data: feature matrix for ML
+        f_idx: indices of the important features
+        f_imp_vals: importance value of the important features
+        n_clusters: number of clusters
+        n_threads_blas: number of threads for blas
+        top50p: select only top 50 percent of the important features?
+        csr: data are in CSR format?
+
+        Returns
+        -------
+        indices of records in each cluster,
+        indices of important features
+        """
+
+        data, sel_idx = preprocess_data(data, f_idx, f_imp_vals, top50p, csr)
+
+        # Train GMM model for clustering
+        self.clf_params['n_components'] = n_clusters
+        self.clf_params['random_state'] = 100 + n_clusters
+
+        # run GMM with selected cluster count
+        with threadpool_limits(limits=n_threads_blas, user_api='blas'):
+            nmf_model = NMF(**self.clf_params).fit(data)
+            W, H = nmf_model.transform(data), nmf_model.components_
+
+        # predict labels using train model
+        labels = np.argmax(W, axis=1)
 
         # group data by their labels
         cluster_indx = []

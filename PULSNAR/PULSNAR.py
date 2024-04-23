@@ -20,16 +20,17 @@ from PULSNAR.puestimator import PulsnarParams as pp
 
 
 class PULSNARClassifier:
-    def __init__(self, scar=True, csrdata=False, classifier='xgboost', n_clusters=0, max_clusters=25, covar_type='full',
-                 top50p_covars=False, bin_method='scott', bw_method='hist', lowerbw=0.01, upperbw=0.5, optim='global',
-                 calibration=False, calibration_data='PU', calibration_method='isotonic', calibration_n_bins=100,
-                 smooth_isotonic=False, classification_metrics=False, n_iterations=1, kfold=5, kflips=1,
-                 pulsnar_params_file=None):
+    def __init__(self, scar=True, csrdata=False, classifier='xgboost', clustering_method='gmm', n_clusters=0,
+                 max_clusters=25, covar_type='full', top50p_covars=False, bin_method='scott', bw_method='hist',
+                 lowerbw=0.01, upperbw=0.5, optim='global', calibration=False, calibration_data='PU',
+                 calibration_method='isotonic', calibration_n_bins=100, smooth_isotonic=False,
+                 classification_metrics=False, n_iterations=1, kfold=5, kflips=1, pulsnar_params_file=None, rseed=123):
 
         # set class variables
         self.scar = scar
         self.csrdata = csrdata
         self.classifier = classifier
+        self.clustering_method = clustering_method
         self.n_clusters = n_clusters
         self.max_clusters = max_clusters
         self.covar_type = covar_type
@@ -49,6 +50,7 @@ class PULSNARClassifier:
         self.kfold = kfold
         self.kflips = kflips
         self.pulsnar_params_file = pulsnar_params_file
+        self.rseed = rseed
 
     def pulsnar(self, data, label, tru_label=None, rec_list=None):
         """
@@ -132,7 +134,7 @@ class PULSNARClassifier:
                                                scar=True)
 
                 cls_metrics_preds, cls_metrics_y_true = mlpe.prediction_using_probable_positives(preds, y_ml, y_orig,
-                                                                                                    rec_ids)
+                                                                                                 rec_ids)
                 itr_bs, itr_aps, itr_auc, itr_f1, itr_mcc, itr_acc = \
                     pulsnar_performance_metrics(cls_metrics_preds, cls_metrics_y_true, scar=True)
 
@@ -193,7 +195,7 @@ class PULSNARClassifier:
                 pickle.dump(impf, fh, protocol=4)
         '''
         # divide data into positive and unlabeled sets
-        ml_data = MLDataPreprocessing(rseed=123)
+        ml_data = MLDataPreprocessing(rseed=self.rseed)
         X_pos, y_ml_pos, y_true_pos, mv_pos, X_unlab, y_ml_unlab, y_true_unlab, mv_unlab = \
             ml_data.generate_pu_dataset(X, Y, Y_true, mv_list)
 
@@ -201,11 +203,13 @@ class PULSNARClassifier:
         # logging.info("Dividing positives into k clusters")
         if self.n_clusters == 0:
             clster_indx, f_idx = self.determine_clusters(impf, X_pos, self.covar_type, io_files['bic_plot_file'],
-                                                         n_clusters=None, csr=self.csrdata, top50p=self.top50p_covars)
+                                                         n_clusters=None, csr=self.csrdata, top50p=self.top50p_covars,
+                                                         clustering_method=self.clustering_method)
         else:
             clster_indx, f_idx = self.determine_clusters(impf, X_pos, self.covar_type, io_files['bic_plot_file'],
                                                          n_clusters=self.n_clusters, csr=self.csrdata,
-                                                         top50p=self.top50p_covars)
+                                                         top50p=self.top50p_covars,
+                                                         clustering_method=self.clustering_method)
         # use only important features.
         X_pos, X_unlab = X_pos[:, f_idx], X_unlab[:, f_idx]
 
@@ -423,11 +427,16 @@ class PULSNARClassifier:
                 return dict(config['IO_params'])
             else:
                 return pp.IO_params
-        elif option == 'clustering':
+        elif option == 'gmm_clustering':
             if param_file:
                 return dict(config['GMM_params'])
             else:
                 return pp.GMM_params
+        elif option == 'nmf_clustering':
+            if param_file:
+                return dict(config['NMF_params'])
+            else:
+                return pp.NMF_params
         else:
             logging.error("Invalid option !!!")
 
@@ -462,12 +471,22 @@ class PULSNARClassifier:
         impf = dict(zip(f_idx, f_imp_vals))
         return impf
 
-    def determine_clusters(self, imf, X_pos, covar, bic_plt_file, n_clusters=None, csr=False, top50p=False):
+    def determine_clusters(self, imf, X_pos, covar, bic_plt_file, n_clusters=None, csr=False, top50p=False,
+                           clustering_method="gmm"):
         """
         split labeled positive tests into k clusters
         """
+        if clustering_method == "gmm":
+            return self.determine_clusters_using_gmm(imf, X_pos, covar, bic_plt_file, n_clusters, csr, top50p)
+        elif clustering_method == "nmf":
+            return self.determine_clusters_using_nmf(imf, X_pos, bic_plt_file, n_clusters, csr, top50p)
+
+    def determine_clusters_using_gmm(self, imf, X_pos, covar, bic_plt_file, n_clusters, csr, top50p):
+        """
+        determine cluster count and clusters for the positive records using GMM method
+        """
         # get GMM parameters
-        gmm_params = self.get_params(option='clustering')
+        gmm_params = self.get_params(option='gmm_clustering')
 
         # set some parameters for clustering algorithm
         gmm_params['covariance_type'] = covar
@@ -492,4 +511,35 @@ class PULSNARClassifier:
         # divide positives into n clusters
         cluster_indx, sel_idx = cls.divide_positives_into_clusters(X_pos, f_idx, f_imp_vals, n_clusters,
                                                                    n_threads_blas=1, top50p=top50p, csr=csr)
+        return cluster_indx, sel_idx
+
+    def determine_clusters_using_nmf(self, imf, X_pos, bic_plt_file, n_clusters, csr, top50p):
+        """
+        determine cluster count and clusters for the positive records using GMM method
+        """
+        # get GMM parameters
+        nmf_params = self.get_params(option='nmf_clustering')
+
+        # set some parameters for clustering algorithm
+        cls = ClusteringEstimator(clf="nmf", clf_params=nmf_params)
+
+        # dict to array - feature index and feature importance
+        f_idx, f_imp_vals = list(map(np.array, zip(*imf.items())))
+
+        # check if number of clusters needs to be estimated
+        if n_clusters is None:
+            _, bic_vals, n_clusters = cls.find_cluster_count_nmf(X_pos, f_idx, f_imp_vals,
+                                                                        max_clusters=self.max_clusters,
+                                                                        n_threads_blas=1, top50p=top50p, csr=csr)
+            print('Number of clusters in the positive set: ', n_clusters)
+            plt = MiscUtils(bic_plot=True)
+
+            # generate BIC plot
+            cluster_list = [c + 1 for c in range(len(bic_vals))]
+            plt.draw_line_plot(cluster_list, bic_vals, bic_plt_file)
+            # n_clusters = int(input("Check the BIC plot and enter number of cluster: "))
+
+        # divide positives into n clusters
+        cluster_indx, sel_idx = cls.divide_positives_into_clusters_nmf(X_pos, f_idx, f_imp_vals, n_clusters,
+                                                                       n_threads_blas=1, top50p=top50p, csr=csr)
         return cluster_indx, sel_idx
