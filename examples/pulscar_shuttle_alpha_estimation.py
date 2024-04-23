@@ -94,7 +94,7 @@ def create_ml_dataset(data, frac, itr=0):
 # ****************************************************** #
 inpfile = "UCIdata/SNAR/shuttle/shuttle.data"
 pfracs = [0.01, 0.05, 0.10, 0.15]  # positive fraction
-n_iterations = 40
+n_iterations = 1
 iter_alpha = {}
 
 # get parameters from user for PULSNAR algorithm.
