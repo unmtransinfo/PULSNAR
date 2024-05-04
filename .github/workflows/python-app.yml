@@ -28,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        conda install conda-forge::rpy2
+        pip install rpy2
         pip install install/PULSNAR-0.0.0-py3-none-any.whl
     - name: Lint with flake8
       run: |
