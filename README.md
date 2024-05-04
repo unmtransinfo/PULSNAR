@@ -79,10 +79,11 @@ git clone git@github.com:unmtransinfo/PULSNAR.git
 cd PULSNAR
 ```
 
-- Install all required packages
+- Install all required packages. 'pip install' does not work for rpy2, so use 'conda install'.
 
 ```
 pip install -r requirements.txt
+conda install conda-forge::rpy2
 ```
 
 - Install PULSNAR package using ".whl" built distribution file:
