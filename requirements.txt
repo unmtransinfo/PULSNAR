@@ -3,7 +3,6 @@ scipy
 pandas
 PyYAML
 scikit-learn
-rpy2
 xgboost
 catboost
 threadpoolctl
