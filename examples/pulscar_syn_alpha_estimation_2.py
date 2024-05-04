@@ -29,7 +29,7 @@ else:
 if not os.path.exists("results"):
     os.makedirs("results")
 
-# generate synthetic SNAR data and run PU
+# generate synthetic SNAR data and run PULSCAR
 for pf in pfracs:
     # instantiate simulated data class
     s_data = SklearnSimulatedData(pc.make_classification_params)
