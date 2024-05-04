@@ -28,6 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        conda install conda-forge::rpy2
         pip install install/PULSNAR-0.0.0-py3-none-any.whl
     - name: Lint with flake8
       run: |
@@ -37,4 +38,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with scar data
       run: |
-        python examples/syn_pulscar_alpha_estimation.py
+        python examples/pulscar_syn_alpha_estimation_1.py
