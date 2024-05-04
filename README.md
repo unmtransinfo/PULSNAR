@@ -70,7 +70,7 @@ conda install -c conda-forge r-base
 - Clone this repository
 
 ```
-git clone git@github.com:unmtransinfo/PULSNAR.git 
+git clone https://github.com/unmtransinfo/PULSNAR.git
 ```
 
 - change directory to PULSNAR
