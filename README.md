@@ -1,6 +1,6 @@
 # PULSNAR (Positive Unlabeled Learning Selected Not At Random)
 
-## About PULSNAR
+## About PULSNAR 
 
 Consider the following topical example: if one had a set of Twitter users that were confirmed bots, an unlabeled set of users comprising a mixture of bots and non-bots, and a set of covariates for both sets, PULSNAR can provide an estimate of the fraction of bots (and thus human users as well). Our motivation for developing PULSNAR was more on biomedical problems such as estimating the fraction of patients with an undiagnosed (or uncoded) medical condition.
 
