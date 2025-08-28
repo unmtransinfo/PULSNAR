@@ -200,7 +200,7 @@ class CalibrateProbabilities:
         # logging.info("number of records to be flipped in each bin: {0}".format(u_bin_count))
         # logging.info("total number records to be flipped: {0}, number of bins: {1}".format(sum(u_bin_count),
         #                                                                                   len(u_bin_count)))
-        # if no records to be flipped in any bin due to low probability, flip the last 5 high probability records to avoid error
+        # if no records to be flipped in any bin due to low probability or low alpha value, flip the last 5 high probability records to avoid error
         if sum(u_bin_count) == 0:   
             for k in range(95,100):
                 u_bin_count[k] += 1
