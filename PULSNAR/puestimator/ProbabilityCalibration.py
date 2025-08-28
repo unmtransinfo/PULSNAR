@@ -182,9 +182,9 @@ class CalibrateProbabilities:
         proportion = p_bin_count / np.sum(p_bin_count)  # proportion for each bin
 
         # find bin_counts for unlabeled
-        p_count_in_unlab = int(len(unlab) * self.alpha)
+        p_count_in_unlab = np.round(len(unlab) * self.alpha).astype(int)
         u_bin_count = p_count_in_unlab * proportion
-        u_bin_count = u_bin_count.astype(int)  # convert to int
+        u_bin_count = np.round(u_bin_count).astype(int)  # convert to int
 
         # check if bin_count = p_count in unlab
         if sum(u_bin_count) < p_count_in_unlab:
@@ -200,4 +200,8 @@ class CalibrateProbabilities:
         # logging.info("number of records to be flipped in each bin: {0}".format(u_bin_count))
         # logging.info("total number records to be flipped: {0}, number of bins: {1}".format(sum(u_bin_count),
         #                                                                                   len(u_bin_count)))
+        # if no records to be flipped in any bin due to low probability, flip the last 5 high probability records to avoid error
+        if sum(u_bin_count) == 0:   
+            for k in range(95,100):
+                u_bin_count[k] += 1
         return u_bin_count
