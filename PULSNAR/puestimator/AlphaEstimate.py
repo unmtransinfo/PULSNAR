@@ -6,13 +6,14 @@ from scipy.optimize import minimize_scalar, dual_annealing, differential_evoluti
 from sklearn.neighbors import KernelDensity
 from scipy.spatial import distance
 from scipy.stats import gaussian_kde
-from rpy2.robjects.packages import importr
-from rpy2.robjects import numpy2ri
 
-numpy2ri.activate()
 import warnings
-
 warnings.filterwarnings("ignore")
+
+import rpy2.robjects as ro
+from rpy2.robjects import numpy2ri
+from rpy2.robjects.packages import importr
+numpy2ri.activate()
 
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', level=logging.INFO)
 

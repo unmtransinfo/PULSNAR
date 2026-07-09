@@ -378,52 +378,44 @@ class ClusteringEstimator(BaseEstimator):
             number of clusters
             """
             vals = np.asarray(vals)
-            minima_bic_idx = argrelmin(vals)[0]
-            # print("minima_bic_idx: ", minima_bic_idx)
-            if len(minima_bic_idx) > 0:  # function is not monotonically increasing or decreasing
-                bic_slope = np.diff(vals)
-                return min(np.argmin(vals), minima_bic_idx[0], np.argmax(np.diff(bic_slope)) + 3)+1
+            # use knee point detection algorithm
+            diff_list = []
+            curr_val, prev_val, next_val = vals[0], vals[0], vals[0]
+            for m in range(len(vals) - 1):
+                curr_val = vals[m]
+                next_val = vals[m + 1]
+                diff = prev_val + next_val - 2 * curr_val
+                prev_val = curr_val
+                diff_list.append(diff)
 
-                # minima_vals = vals[minima_bic_idx]
-                # i = np.argmin(minima_vals)
-                # return minima_bic_idx[i] + 1    # cluster count starts from 1, not 0 and hence +1
-            else:  # use knee point detection algorithm
-                diff_list = []
-                curr_val, prev_val, next_val = vals[0], vals[0], vals[0]
-                for m in range(len(vals) - 1):
-                    curr_val = vals[m]
-                    next_val = vals[m + 1]
-                    diff = prev_val + next_val - 2 * curr_val
-                    prev_val = curr_val
-                    diff_list.append(diff)
+            # find indices of local minima in diff values
+            diff_list = np.asarray(diff_list)
+            minima_idx = argrelmin(diff_list)[0]  # indices of local minima
 
-                # find indices of local minima in diff values
-                diff_list = np.asarray(diff_list)
-                minima_idx = argrelmin(diff_list)[0]  # indices of local minima
-
-                # create a dictionary with cluster count as key and local minimum in diff_list as value
-                local_min = {}
-                for m in minima_idx:
-                    local_min[m + 1] = diff_list[m]  # cluster count starts from 1, not 0. so m+1
-                local_min = Counter(local_min).most_common()  # sort local_min in decreasing order
-
-                # find the angle for each local minimum
-                angle0 = 0
-                maxfound = False
-                for m, v in local_min:
-                    angle1 = np.arctan(1 / (abs(vals[m] - vals[m - 1]))) + np.arctan(1 / (abs(vals[m + 1] - vals[m])))
-                    if angle0 == 0:
-                        angle0 = angle1
-                    elif angle1 > angle0:
-                        maxfound = True
-                        break
-                    else:
-                        continue
-                # return cluster count. if maxima is not found, return the cluster for max local minima
-                if maxfound:
-                    return m
+            # create a dictionary with cluster count as key and local minimum in diff_list as value
+            local_min = {}
+            for m in minima_idx:
+                local_min[m + 1] = diff_list[m]  # cluster count starts from 1, not 0. so m+1
+            #local_min = Counter(local_min).most_common()  # sort local_min in decreasing order
+            local_min = sorted(local_min.items(), key=lambda x:x[1], reverse=True)  # sort local_min in decreasing order
+            
+            # find the angle for each local minimum
+            angle0 = 0
+            maxfound = False
+            for m, v in local_min:
+                angle1 = np.arctan(1 / (abs(vals[m] - vals[m - 1]))) + np.arctan(1 / (abs(vals[m + 1] - vals[m])))
+                if angle0 == 0:
+                    angle0 = angle1
+                elif angle1 > angle0:
+                    maxfound = True
+                    break
                 else:
-                    return local_min[0][0]
+                    continue
+            # return cluster count. if maxima is not found, return the cluster for max local minima
+            if maxfound:
+                return m
+            else:
+                return local_min[0][0]
 
         # *** start - feature scaling *** #
         bic_values = []
